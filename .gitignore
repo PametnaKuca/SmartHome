@@ -1,3 +1,9 @@
-MDK-ARM/CarModelBoard/CarModelBoard.build_log.htm
 *.o
 *.d
+*.map
+*.lst
+*.axf
+*.htm
+*.lnp
+*.dep
+
