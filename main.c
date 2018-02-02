@@ -6,7 +6,7 @@
 
 int main()
 {	
-		
+		// init sequence
 		gpio_init();
 		flash_init();
 		DHT22_Init(DHT22_DATA_PIN1);
