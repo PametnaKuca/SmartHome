@@ -1,3 +1,4 @@
+*.crf
 *.o
 *.d
 *.map
@@ -7,6 +8,5 @@
 *.lnp
 *.dep
 *.bak
-*.crf
 
 
