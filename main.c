@@ -3,12 +3,16 @@
 #include "step_motor.h"
 #include "tm_stm32f4_delay.h"
 
-
+extern int flag_button;
+int position=0;
 int main()
 {	
-		// init sequence
+		
 		gpio_init();
 		flash_init();
+//		init_step();
+//		exti();
+	
 		DHT22_Init(DHT22_DATA_PIN1);
 		DHT22_Init(DHT22_DATA_PIN2);
 	
@@ -30,10 +34,11 @@ int main()
 
 	
 		xTaskCreate(space_mapping, "space_mapping_task", STACK_SIZE_MIN, NULL, 2, &HCSRHhandle);
-		xTaskCreate(rfid_task, "rfid_check_task", STACK_SIZE_MIN, NULL, 3, &RFIDhandle);
-		xTaskCreate(dht_task1, "dht task", STACK_SIZE_MIN, NULL, 2, &tHandDHT);
-		xTaskCreate(dht_task2, "dht task", STACK_SIZE_MIN, NULL, 2, &tHandDHT);
+////		xTaskCreate(rfid_task, "rfid_check_task", STACK_SIZE_MIN, NULL, 3, &RFIDhandle);
+//		xTaskCreate(dht_task1, "dht task", STACK_SIZE_MIN, NULL, 2, &tHandDHT);
+		xTaskCreate(user_button,"user_button_task", STACK_SIZE_MIN, NULL,3, &BUTTONhandle);
 
+//	
 		vTaskStartScheduler();
 		while(1);
 
@@ -44,6 +49,25 @@ int main()
 *	While the task is reading data from the sensor, which is an extremely time critical operation, the task raises its own priority
 *	in order to prevent being halted either by another task or an ISR.
 */
+
+void user_button(void *prvParams)
+{
+	static int cnt=0;
+	while(1)
+	{		
+			if  (TM_DISCO_ButtonPressed())//(a==1) 
+			{
+				 GPIO_SetBits(LEDPORT, LED2PIN);
+				 GPIO_SetBits(LEDPORT, LED4PIN);
+					flag_button=1;
+					cnt++;
+
+			}
+ vTaskDelay(USER_BUTTON_REFRESHRATE/portTICK_RATE_MS);
+	}	
+}
+
+
 
 void dht_task1(void *prvParams)
 {
@@ -74,7 +98,7 @@ void dht_task2(void *prvParams)
 	while(1)
     {
         bool checksumValid2;
-        GPIO_SetBits(LEDPORT, LED4PIN);
+//        GPIO_SetBits(LEDPORT, LED4PIN);
 				
 				// For every defined pin, read again, but after get functions.
         vTaskPrioritySet(NULL, 2);
@@ -87,7 +111,7 @@ void dht_task2(void *prvParams)
         temperature2=DHT22getTemperature();
         humidity2=DHT22getHumidity();
 				}		
-        GPIO_ResetBits(LEDPORT, LED4PIN);				
+//        GPIO_ResetBits(LEDPORT, LED4PIN);				
 				sendDHT22(temperature2,humidity2, DHT_SUB_ID1);
 				
         vTaskDelay(DHT22_REFRESHRATE/portTICK_RATE_MS);
@@ -98,126 +122,116 @@ void dht_task2(void *prvParams)
 
 void space_mapping(void *prvParameters)
 {
-		static int i, direction=1;
-		static  int number=(ANGLEmax/ANGLE);
-		static float distance=0;
-		int position = 0;
+	static int i, direction=1;
+	static float distance=0;
 	
-		int positionNum=ANGLEmax/ANGLE;
-		float initial_map[number];
-		float map[ANGLEmax/ANGLE];
-		vTaskSuspendAll();
-		int a = 5;
-	
-	
-if  (TM_DISCO_ButtonPressed())//(a==1) 
-	{
-			GPIO_SetBits(LEDPORT, LED4PIN);
 
-//			TM_DISCO_Reset_Button();
+	int positionNum=30;//(ANGLEmax/ANGLE);
+//	float initial_map[positionNum+1];
+		float initial_map[30];
+		float map[30];
+//		vTaskSuspendAll();
+ 
+	int a=0;
 
-			TM_PWM_SetChannelMicros(&scanner_timer, SCANNER_CHANNEL, SCANNER_MIN);
-			Delay(500000);	
-			GPIO_ResetBits(LEDPORT, LED4PIN);
-			Delay(1000000);
-			a=2;
+		if(flag_button)//(a==1) 
+		{						 
+				GPIO_ResetBits(LEDPORT, LED2PIN);
+				GPIO_ResetBits(LEDPORT, LED4PIN);
+				//postavi servo motor na pocetak
+				TM_PWM_SetChannelMicros(&scanner_timer, SCANNER_CHANNEL, SCANNER_MIN);
+				position=0;
+//				TM_PWM_SetChannelMicros(&scanner_timer, SCANNER_CHANNEL, SCANNER_MIDDLE);	
+				flag_button=0;
 	}
 
-int cnt=0;
-	
-
-		GPIO_SetBits(LEDPORT, LED2PIN);
-	
 		for (i=0;i<positionNum;i++) 
-			{	
-				initial_map[i] = TM_HCSR04_Read(&HCSR04);
-				GPIO_ResetBits(LEDPORT, LED2PIN);
-				
+		{
+				initial_map[i] = a;// TM_HCSR04_Read(&HCSR04);
+				GPIO_SetBits(LEDPORT, LED2PIN);	
 				TM_PWM_SetChannelMicros(&scanner_timer, SCANNER_CHANNEL, SCANNER_MIN+position);	
 				Delay(500000);
-				//move_positive();
+				GPIO_ResetBits(LEDPORT, LED2PIN);
 				position+=ANGLE;
-				cnt++;
-			}
-			
-		position = ANGLEmax;
-		direction = -1;
+				a++;
+				
+		}
+			a=0;
+//		position = ANGLEmax;
+//		direction = -1;
 		sendInitialMap(&initial_map[0], positionNum);
 		writeInitialMap(initial_map); //zapisivanje u flash
-		xTaskResumeAll ();
-
+//		xTaskResumeAll ();
+	vTaskDelay(USER_BUTTON_REFRESHRATE/(10*portTICK_RATE_MS));
 		while(1)
 		{		
-			TM_PWM_SetChannelMicros(&buzzer_timer, BUZZER_CHANNEL, 50);	
-			Delay(5000000);
-			TM_PWM_SetChannelMicros(&buzzer_timer, BUZZER_CHANNEL, 0);	
-
-			if (TM_DISCO_ButtonPressed())// (a==1) 
+			if (flag_button)// (a==1) 
 			{
 				GPIO_SetBits(LEDPORT, LED4PIN);
 				GPIO_SetBits(LEDPORT, LED3PIN);
-//				TM_DISCO_Reset_Button();
+
 			//postavi servo motor na pocetak
 			  vTaskDelay(100/portTICK_RATE_MS);
 		  	TM_PWM_SetChannelMicros(&scanner_timer, SCANNER_CHANNEL, SCANNER_MIN);
 				Delay(500000);
 		  	GPIO_ResetBits(LEDPORT, LED3PIN);
-		    direction=1;
-		   	a=3;
-			 TM_PWM_SetChannelMicros(&scanner_timer, SCANNER_CHANNEL, SCANNER_MIDDLE);			
-		}
-		position=0;
+				GPIO_ResetBits(LEDPORT, LED4PIN);
+		    direction=1;		
+				position=0;
+				
+			}
+	
 			if(direction > 0)
 			{
-	
+				position=0;
 				for(i=0;i<positionNum;i++)
 				{
+						
 						TM_PWM_SetChannelMicros(&scanner_timer, SCANNER_CHANNEL, SCANNER_MIN+position);
 						Delay(500000);			// move_positive();  //Move the sensor in positive direction.
-						map[i] = TM_HCSR04_Read(&HCSR04);		
-						if(abs(map[i]-initial_map[i]) > DISTANCE_ERROR)		
-						{		
-							positionNum-=ANGLE;
-							TM_PWM_SetChannelMicros(&scanner_timer, SCANNER_CHANNEL, SCANNER_MIN+position);
-							if((abs(map[i])-initial_map[i]) > DISTANCE_ERROR)	
-									TM_PWM_SetChannelMicros(&buzzer_timer, BUZZER_CHANNEL, 50);	
-							
-							Delay(5000000);
-		          TM_PWM_SetChannelMicros(&buzzer_timer, BUZZER_CHANNEL, 0);
-							position+=ANGLE;									
-						}
-					
-				}					
-			position+=ANGLE;									
+						map[i] = a; //TM_HCSR04_Read(&HCSR04);		
+//						if(abs(map[i]-initial_map[i]) > DISTANCE_ERROR)		
+//						{		
+//							positionNum-=ANGLE;
+//							TM_PWM_SetChannelMicros(&scanner_timer, SCANNER_CHANNEL, SCANNER_MIN+position);
+//							if((abs(map[i])-initial_map[i]) > DISTANCE_ERROR)	
+//							TM_PWM_SetChannelMicros(&buzzer_timer, BUZZER_CHANNEL, 50);	
+//							Delay(5000000);
+//		          TM_PWM_SetChannelMicros(&buzzer_timer, BUZZER_CHANNEL, 0);
+//							position+=ANGLE;									
+//						}
+					a++;				
+									
+				position+=30;	
+				}							
 			}
 					
 			else
 			{	
 				position=0;
-				for(i=0;i<positionNum;i++)
+				for(i=positionNum;i>0;i--)
 				{
-					
-				TM_PWM_SetChannelMicros(&scanner_timer, SCANNER_CHANNEL, SCANNER_MAX+position);	// move_negative();  //Move the sensor in negative direction.
-				map[i] = TM_HCSR04_Read(&HCSR04);	
-				Delay(500000);
-				if(abs(map[i]-initial_map[i]) > DISTANCE_ERROR)
-				{				
-					positionNum+=ANGLE;
-					TM_PWM_SetChannelMicros(&scanner_timer, SCANNER_CHANNEL, SCANNER_MAX+position-ANGLE);
-							
-					if((abs(map[i]-initial_map[i])) > DISTANCE_ERROR)	
-					TM_PWM_SetChannelMicros(&buzzer_timer, BUZZER_CHANNEL, 50);	
-					
-					Delay(5000000);
-					TM_PWM_SetChannelMicros(&buzzer_timer, BUZZER_CHANNEL, 0);
-					position-=ANGLE;
-							//ALARM;
-				}
-					//provjerit jel došlo do greške, ako je vratit se korak nazad pa ponovno provjerit, možda je bila neka greška
-					position-=ANGLE;		
-					
+	
+					TM_PWM_SetChannelMicros(&scanner_timer, SCANNER_CHANNEL, SCANNER_MAX+position);	// move_negative();  //Move the sensor in negative direction.
+					Delay(500000);
+					map[i] = a;//TM_HCSR04_Read(&HCSR04);	
+					Delay(500000);
+//					if(abs(map[i]-initial_map[i]) > DISTANCE_ERROR)
+//					{				
+//						positionNum+=ANGLE;
+//						TM_PWM_SetChannelMicros(&scanner_timer, SCANNER_CHANNEL, SCANNER_MAX+position);
+//								
+//						if((abs(map[i])-initial_map[i]) > DISTANCE_ERROR)	
+//	//					TM_PWM_SetChannelMicros(&buzzer_timer, BUZZER_CHANNEL, 50);	
+//	//					Delay(5000000);
+//	//		      TM_PWM_SetChannelMicros(&buzzer_timer, BUZZER_CHANNEL, 0);
+//						position-=ANGLE;									
+//					}
+						//provjerit jel došlo do greške, ako je vratit se korak nazad pa ponovno provjerit, možda je bila neka greška
+						position-=30;
 				
 				}
+				position-=30;		
 			}
 					
 			if(position >= ANGLEmax) //In final position change the direction of the motor.
@@ -231,8 +245,10 @@ int cnt=0;
 				position=0;     
 			}
 	}
-	 vTaskDelay(1000/portTICK_RATE_MS);
-}
+//	 vTaskDelay(1000/portTICK_RATE_MS);
+ }
+
+
 
 void rfid_task(void *prvParameters)
 {
@@ -282,3 +298,29 @@ void rfid_task(void *prvParameters)
 }
 
 
+//void EXTI0_IRQHandler(void)
+//{
+
+//  // Checks whether the interrupt from EXTI0 or not
+
+//    if (EXTI_GetITStatus(EXTI_Line0))
+
+//    {	
+//			vTaskSuspendAll();	
+//  
+//        // Toggle orange LED (GPIO13)
+//			  
+//         GPIO_SetBits(LEDPORT, LED2PIN);
+//			 GPIO_ResetBits(LEDPORT, LED2PIN);
+//			
+//					xTaskResumeAll ();
+//        // Clears the EXTI line pending bit
+//				
+//        EXTI_ClearITPendingBit(EXTI_Line0);
+//			 ext_reset=1;
+//					
+//    }
+//		
+
+//		
+//}

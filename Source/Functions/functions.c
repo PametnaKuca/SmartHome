@@ -174,7 +174,7 @@ void writeInitialMap(float *initial_map)
 {
 		uint32_t startAddress = 0x08010000;	//Randomly selected address. It can be any other as well. 
 		uint32_t currAddress = startAddress + 1;
-		uint8_t numberOfUsers = 4;
+//		uint8_t numberOfUsers = 30;
 	
 		if(*(__IO uint8_t*)(startAddress) == 0xA7)
 			return;
@@ -183,7 +183,7 @@ void writeInitialMap(float *initial_map)
 		FLASH_EraseSector(FLASH_Sector_2, VoltageRange_3);
 		FLASH_ProgramByte(startAddress,0xA7);
 	
-		for(uint8_t i=0; i<sizeof(initial_map); i++)
+		for(uint8_t i=0; i<30; i++)
 		{
 
 		

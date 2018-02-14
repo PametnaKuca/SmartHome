@@ -28,10 +28,10 @@
 #define LEDPORT GPIOD
 #define LEDRCC 	RCC_AHB1Periph_GPIOD
 
-#define LED1PIN GPIO_Pin_12
-#define LED2PIN GPIO_Pin_13
-#define LED3PIN GPIO_Pin_14
-#define LED4PIN GPIO_Pin_15
+#define LED1PIN GPIO_Pin_12 //GREEN
+#define LED2PIN GPIO_Pin_13 //ORANGE
+#define LED3PIN GPIO_Pin_14 //RED
+#define LED4PIN GPIO_Pin_15 //BLUE
 
 #define BUTTONPIN 	GPIO_Pin_0
 #define BUTTONPORT 	GPIOA
@@ -68,7 +68,7 @@
 //#define USART_RX_PIN1  GPIO_Pin_4
 //#define RX_PIN_SOURCE1 GPIO_PinSource4
 /* ------------------------------------------------------*/
-
+#define USER_BUTTON_REFRESHRATE 250
 /* DH22 port, pins and timer --------------------------- */
 #define DHT22_GPIO	GPIOA
 #define DHT22_DATA_PIN1 GPIO_Pin_5
@@ -133,7 +133,7 @@
 /* For TM_PWM_Channel_x and TM_PWM_PinsPack_x look at tm_stm32f4_pwm.h */
 #define SERVO_CHANNEL 	TM_PWM_Channel_2	//This sets servo pwm pin to PA9
 #define SERVO_PINSPACK 	TM_PWM_PinsPack_1
-#define SCANNER_CHANNEL	TM_PWM_Channel_3
+#define SCANNER_CHANNEL	TM_PWM_Channel_3 //PA10
 #define SCANNER_PINSPACK 	TM_PWM_PinsPack_1
 
 #define BUZZER_CHANNEL	TM_PWM_Channel_2

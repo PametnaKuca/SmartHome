@@ -50,9 +50,14 @@ TM_HCSR04_t HCSR04;
 static TaskHandle_t tHandDHT = NULL;
 static TaskHandle_t RFIDhandle = NULL;
 static TaskHandle_t HCSRHhandle = NULL;
+static TaskHandle_t BUTTONhandle = NULL;
 
 //task functions prototype
 void dht_task1 (void *prvParams);
 void dht_task2 (void *prvParams);
 void rfid_task(void *prvParameters);
 void space_mapping(void *prvParameters);
+void user_button(void *prvParameters);
+
+int flag_button=0;
+
